@@ -61,7 +61,7 @@ class ConformerEncoder(nn.Module):
         super(ConformerEncoder,self).__init__()
         self.conv_subsample = Conv2dSubsampling(in_channels = 1, out_channels = encoder_dim)
         self.input_projection = nn.Sequential(
-            Linear(encoder_dim * ((input_dim - 1) // 2), encoder_dim), # 1/2 -> -1 1/3 -> -2
+            Linear(encoder_dim * (((input_dim - 1) // 2 - 1) // 2), encoder_dim), 
             # matching subsampling length with encoder block dimension
             nn.Dropout(p=input_dropout_p)
         )

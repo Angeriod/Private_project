@@ -22,9 +22,9 @@ def WER(predicted, actual):
     
     for pred_seq, actual_value in zip(predicted, actual):
         pred_seq_list = pred_seq.tolist()
-        actual_value = actual_value.item()
+        actual_value = actual_value.tolist()
 
-        edit_dist = edit_distance(pred_seq_list, [actual_value])
+        edit_dist = edit_distance(pred_seq_list, actual_value)
         total_errors += edit_dist
         total_words += max(len(pred_seq_list), 1)
 

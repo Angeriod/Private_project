@@ -45,12 +45,14 @@ def define_args():
     p.add_argument('--model_dir', type=str, default=f"./save_model/model-{datetime.now().strftime('%Y-%m-%d-%H-%M')}", help="save model path")
     p.add_argument('--gpu_id', type=int, default=0 if torch.cuda.is_available() else -1)
 
-    p.add_argument('--lr', type=float, default=2e-3)
+    p.add_argument('--lr', type=float, default=2e-5)
+    p.add_argument('--betas', type=float, default=(0.9,0.98))
+    p.add_argument('--L2', type=float, default=1e-6)
     p.add_argument('--p', type=float, default=0.01, help="Dropout rate")
     p.add_argument('--clips', type=bool, default=0.6, help="clip grad norm")
-    p.add_argument('--batch_size', type=int, default=8)
-    p.add_argument('--n_epochs', type=int, default=8)
-    p.add_argument('--num_classes', type=int, default=74)
+    p.add_argument('--batch_size', type=int, default=2)
+    p.add_argument('--n_epochs', type=int, default=20)
+    p.add_argument('--num_classes', type=int, default=73)
     p.add_argument('--max_seq_len', type=float, default=300)
     p.add_argument('--drop_out', type=float, default=0.1)
 
@@ -58,11 +60,9 @@ def define_args():
     p.add_argument('--parallel', type=bool, default=False)
     p.add_argument('--seed', type=int, default=-1, help="set seed num")
     p.add_argument('--num_workers', type=float, default=0)
+
     #mel spectrogram
-    p.add_argument('--n_fft', type=int, default=256)
-    p.add_argument('--win_length', type=int, default=None)
-    p.add_argument('--hop_length', type=int, default=128)
-    p.add_argument('--n_mels', type=int, default=32)
+    p.add_argument('--n_mels', type=int, default=80)
     p.add_argument('--sample_rate', type=int, default=16000)
 
     #conformer
@@ -92,10 +92,8 @@ def main(config):
     data_train = dataset.CustomDataset(config=config,train=True),
     data_test = dataset.CustomDataset(config=config,train=False),
     
-                                    
     # data_train = dataset.IterableDataset(data=)
     # data_test = dataset.IterableDataset(data=)
-    
     # 모델 병렬 처리
     if config.parallel:
         model = DistributedDataParallel(model, device_ids=config.gpu_list)
@@ -117,14 +115,13 @@ def main(config):
         # train_dataloader = DataLoader(data_train, batch_size=config.batch_size, num_workers=2, worker_init_fn=dataset.worker_init_fn)
         # test_dataloader = DataLoader(data_test, batch_size=config.batch_size, num_workers=2, worker_init_fn=dataset.worker_init_fn)
       
-
     # scheduler setting
     # 한 에포크 마다 learning rate가 변함
     total = config.n_epochs * len(train_dataloader)
     warmup_rate = 0.1
-    optimizer = optim.AdamW(params=model.parameters(), lr=config.lr, eps=1e-6)
+    optimizer = optim.Adam(params=model.parameters(), lr=config.lr,betas=config.betas, weight_decay= config.L2 )
     scheduler = transformers.get_linear_schedule_with_warmup(optimizer, int(total * warmup_rate), total)
-    loss_function = nn.CTCLoss() #ignore_index=-100
+    loss_function = nn.CTCLoss(zero_infinity=True) #ignore_index=-100
 
     model.zero_grad()
     trainer = train.Trainer(model=model, optimizer=optimizer, loss_function=loss_function, scheduler=scheduler, config=config)
