@@ -1,5 +1,7 @@
 # Private_project
 #### Dataset : Librispeech 100h
-#### Preprocessing : Divide the waveform by target phoneme time -> transform into mel spectrogram -> pair with target phoneme
-#### model : Conformer-L (change from 1/4 subsamling to 1/2-> because waveforms have short length )
-#### result : in processing 
+#### Preprocessing : Integer encoding to aligned waveform 
+#### model : Conformer-L with CTCloss
+#### train: 20 epoch with RTX 3060ti
+#### result : overall Train wer -> about 50%  // overall Valid wer -> about 83%
+#### future application: Thinking about low WER was caused by a bunch of silent in single waveform -> Using VAD (silero vad) to delete silent period 
